@@ -1,0 +1,116 @@
+---
+title: "Análisis Exploratorio Podcast Vida en Cristo"
+author: "Ariel Fuentes"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    hightlight: vignette
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(htmltools)
+library(plotly)
+library(kableExtra)
+library(dplyr)
+library(ggplot2)
+```
+
+## Evaluación Global 
+
+Esta sección permite ver el rendimiento general del podcast, para ello se ha establecido en términos comparativos su relación con otros podcasts de similares características, estos son los de:
+
+- Iglesia UNO
+- Mar de Gracia
+- Misión Chiguayante
+
+Esta comparación es posible dado que el sitio web de **[ivoox](https://cl.ivoox.com/es/)** posee un indicador de ranking para sus podcasts, a diferencia de **spotify** que no permite realizar consultas de ese estilo. 
+Ivoox realiza su ranking cada 5 días, donde mientras menor sea el valor del Ranking, mejor es este.
+
+El resultado es el siguiente:
+
+```{r, message=FALSE, warning = F, echo=FALSE, fig.align='center'}
+ay <- list(
+  overlaying = "y",
+  side = "right",
+  title = "Ranking"
+)
+
+plot_ly(data = rnk_df) %>% 
+  add_bars(x = ~podcast, y = ~`n episod`, name = 'Cantidad de Episodios', 
+           marker = list(color = "#3399FF"), offsetgroup = 1) %>%
+  add_bars(x = ~podcast, y = ~ranking, name = 'Ranking Ivoox', 
+           marker = list(color = "#FF6633"), yaxis = "y2", offsetgroup = 2) %>%
+  layout(yaxis2 = ay,
+         xaxis = list(title = "Podcast", tickangle = -45),
+         yaxis = list(title = "Cantidad de Episodios"),
+         margin = list(b = 100),
+         barmode = 'group',
+         legend = list(x = 1.1, y = 1))
+```
+
+En base a dichos datos, se procedió a crear un indicador de efectividad (o éxito), mientras menor sea el valor, mayor es el éxito, cuya formulación es:
+
+$\begin{aligned}idx = \alpha*N*Ranking\end{aligned}$
+
+Donde: 
+
+$N = cantidad\ de\ episodios$
+
+$\alpha = factor\ de\ escala$
+
+Y su resultado es:
+
+```{r, message=FALSE, warning = F, echo=FALSE, fig.align='center'}
+plot_ly(data = rnk_df) %>% 
+  add_bars(x = ~podcast, y = ~idx, name = "idx", 
+           marker = list(color = "#3399FF")) %>%
+  layout(xaxis = list(title = "Podcast", tickangle = -45),
+         yaxis = list(title = "Valor de Indicador"),
+         margin = list(b = 100),
+         barmode = 'group',
+         legend = list(x = 1.1, y = 1))
+```
+
+## Análisis de la programación
+
+Para Analizar los episodios de **VeC** se utilizará la api de *spotify*.
+
+La primera constatación y alerta, es que en el canal de *VeC* solo se muestran los últimos 20 episodios, esto se puede deber a la configuración que se tenga del canal. Por tanto, solo se analizarán los meses completos.
+
+La Segunda Constatación, es que tanto los devocionales como los Sermones no tienen palabra clave que les identifique como tal.
+
+A continuación, se presenta una gráfica que permite visualizar la clasificación de los programas por su duración en minutos.
+
+```{r, message=FALSE, warning = F, echo=FALSE, fig.align='center'}
+dplyr::filter(.data = VeC, Mes %in% c("junio")) %>%
+  dplyr::group_by(tipo_epis) %>% 
+  ggplot(aes(x=tipo_epis, 
+             y=dur_min, 
+             fill=tipo_epis
+             )
+         ) + 
+  geom_violin() + 
+  geom_dotplot(binaxis='y', 
+               stackdir='center', 
+               dotsize = 0.8, 
+               fill = "white",
+               position=position_dodge(1)
+               ) +
+  labs(x = "tipo de episodio", 
+       y = "duración", 
+       fill = "tipo de episodio") +
+  facet_wrap(vars(Mes))
+```
+
+## Recomendaciones
+
+Para facilidad orientada a nuevos usuarios, se recomienda que:
+
+- Spotify como plataforma principal de Podcast tener todos los episodios disponibles
+- Tener palabras claves en el nombre de cada episodio para distinguir facilmente su categoría (Sermón, Devocional)
+- Si bien nuestro indicador *idx* refleja tener un buen nivel, debemos aprender de lo que ha hecho *Mar de Gracia*, dado que posee un buen nivel en tan poco tiempo.
+
+<span style="color: #FF0000;">Estas son las conclusiones principales que pueden tener cierto nivel de sesgo dado la preferencia de la plataforma, pero es lo que se puede hacer de momento con los datos disponibles.</span>
